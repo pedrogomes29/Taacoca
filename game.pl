@@ -1,3 +1,8 @@
+:- consult(board).
+:- consult(print_board).
+:- use_module(library(lists)).
+:- use_module(library(between)).
+
 posToAxial(Pos,PosAxial):-
     (Row,Col)=Pos,
     char_code('E',ECharCode),
@@ -20,11 +25,10 @@ getPiece(Board,(R,Q),Piece):-
     AuxOffset is 4+R,
     Offset is min(4,AuxOffset),
     Col is Q + Offset,
-    getElementOfMatrix(Board,Line,Col,(Pos,Piece)). 
+    getElementOfMatrix(Board,Line,Col,(_,Piece)). 
 
-initial_state(GameState-Player):-
-    board(1,GameState),
-    Player=white.
+initial_state(GameState-white):-
+    board(3,GameState).
 
 
 pos_in_board((R,Q)):-
@@ -82,7 +86,30 @@ choose_stone(GameState,Player,PieceNr,StonesChosenSoFar,Stones):-
 
 
 
-choose_stones(GameState,Player,PossibleMoves,Stones):-
+
+
+getPlayerStonesLine([],_,CurrentStones,CurrentStones).
+
+getPlayerStonesLine([(Pos,Player)|RestLine],Player,CurrentStones,PlayerStones):-
+    !,
+    getPlayerStonesLine(RestLine,Player,[Pos|CurrentStones],PlayerStones).
+
+getPlayerStonesLine([_|RestLine],Player,CurrentStones,PlayerStones):-
+    getPlayerStonesLine(RestLine,Player,CurrentStones,PlayerStones).
+
+
+getPlayerStonesAux([],_,CurrentStones,CurrentStones).
+
+getPlayerStonesAux([Line|OtherLines],Player,CurrentStones,PlayerStones):-
+    getPlayerStonesLine(Line,Player,[],LineStones),
+    append(CurrentStones,LineStones,NewCurrentStones),
+    getPlayerStonesAux(OtherLines,Player,NewCurrentStones,PlayerStones).
+
+
+getPlayerStones(GameState,Player,PlayerStones):-
+    getPlayerStonesAux(GameState,Player,[],PlayerStones).
+
+choose_stones(GameState,Player,human,PossibleMoves,Stones):-
     choose_stone(GameState,Player,1,[],Stones),
     E = (0,1),
     SE = (1,0),
@@ -91,7 +118,85 @@ choose_stones(GameState,Player,PossibleMoves,Stones):-
     NW = (-1,0),
     NE = (-1,1),
     InitialMoves=[E,SE,SW,W,NW,NE],
+    get_moves(GameState,Player,Stones,InitialMoves,PossibleMoves),
+    !.
+
+
+choose_stones(GameState,Player,computer,PossibleMoves,Stones):-
+
+    getPlayerStones(GameState,Player,PlayerStones),
+    length(PlayerStones,NrStones),
+    NrStones>=3,
+    !,
+    LastStoneIndex is NrStones-1,
+
+    between(0,LastStoneIndex,Stone1Index),
+    nth0(Stone1Index,PlayerStones,Stone1),
+
+    between(0,LastStoneIndex,Stone2Index),
+    Stone2Index>Stone1Index, %stones are sorted so there are no permutations
+    nth0(Stone2Index,PlayerStones,Stone2),
+
+    between(0,LastStoneIndex,Stone3Index),
+    Stone3Index>Stone2Index,
+    nth0(Stone3Index,PlayerStones,Stone3),
+
+    Stones=[Stone1,Stone2,Stone3],
+
+    E = (0,1),
+    SE = (1,0),
+    SW = (1,-1),
+    W = (0,-1),
+    NW = (-1,0),
+    NE = (-1,1),
+    InitialMoves=[E,SE,SW,W,NW,NE],
+
+    get_moves(GameState,Player,Stones,InitialMoves,PossibleMoves),
+    \+length(PossibleMoves,0).
+
+
+choose_stones(GameState,Player,computer,PossibleMoves,Stones):-
+
+    getPlayerStones(GameState,Player,PlayerStones),
+    length(PlayerStones,NrStones),
+    NrStones=2,
+    !,
+    
+    nth0(0,PlayerStones,Stone1),
+    nth0(1,PlayerStones,Stone2),
+    Stones=[Stone1,Stone2],
+
+    E = (0,1),
+    SE = (1,0),
+    SW = (1,-1),
+    W = (0,-1),
+    NW = (-1,0),
+    NE = (-1,1),
+    InitialMoves=[E,SE,SW,W,NW,NE],
+
     get_moves(GameState,Player,Stones,InitialMoves,PossibleMoves).
+
+
+choose_stones(GameState,Player,computer,PossibleMoves,Stones):-
+
+    getPlayerStones(GameState,Player,PlayerStones),
+    length(PlayerStones,NrStones),
+    NrStones=1,
+    !,
+
+    nth0(0,PlayerStones,Stone1),
+    Stones=[Stone1],
+
+    E = (0,1),
+    SE = (1,0),
+    SW = (1,-1),
+    W = (0,-1),
+    NW = (-1,0),
+    NE = (-1,1),
+    InitialMoves=[E,SE,SW,W,NW,NE],
+
+    get_moves(GameState,Player,Stones,InitialMoves,PossibleMoves).
+
 
 
 
@@ -123,10 +228,11 @@ parseMove('NE',(-1,1)).
 display_possible_moves(PossibleMoves):-
     maplist(display_move,PossibleMoves).
 
-
-
-choose_move(GameState, Player, Stones, Move):-
-    choose_stones(GameState,Player,PossibleMoves,Stones),
+choose_move(GameState, Player,human, Stones-Move):-
+    repeat,
+    choose_stones(GameState,Player,human,PossibleMoves,Stones),
+    length(PossibleMoves,NrPosMoves),
+    NrPosMoves>0,
     write('Possible Moves'),
     nl,
     display_possible_moves(PossibleMoves),
@@ -135,19 +241,28 @@ choose_move(GameState, Player, Stones, Move):-
     parseMove(MoveText,Move).
 
 
+valid_moves(GameState,Player,Moves):-
+    findall(Stones-PossibleMoves,choose_stones(GameState,Player,computer,PossibleMoves,Stones), Moves).
+
+
+choose_move(GameState, Player, computer-Level, Stones, Move):-
+    valid_moves(GameState, Player, Moves),
+    choose_move(Level, GameState, Player, Moves, Stones-Move).
+
+
 congratulate(Winner):-
     format('~a wins the game\n',[Winner]).
 
 white_reach_opponent_home(GameState):-
     nth0(0, GameState, OpponentHome),
     between(0, 4, Col),
-    nth0(Col,OpponentHome,(Pos,Piece)),
+    nth0(Col,OpponentHome,(_,Piece)),
     Piece=white.
 
 black_reach_opponent_home(GameState):-
     nth0(8, GameState, OpponentHome),
     between(0, 4, Col),
-    nth0(Col,OpponentHome,(Pos,Piece)),
+    nth0(Col,OpponentHome,(_,Piece)),
     Piece=black.
 
 
@@ -174,14 +289,14 @@ moveStone(Board,Piece,(OldR,OldQ),(R,Q),MovedStones,NewBoard,(NewR,NewQ)):-
     setPiece(Board,NewR,NewQ,Piece,NewBoard).
 
 
-moveStone(Board,Piece,(OldR,OldQ),(R,Q),MovedStones,NewBoard,(NewR,NewQ)):-
+moveStone(Board,Piece,(OldR,OldQ),(R,Q),_,NewBoard,(NewR,NewQ)):-
     NewR is OldR+R,
     NewQ is OldQ+Q,
     setPiece(Board,OldR,OldQ,empty,AuxBoard),
     setPiece(AuxBoard,NewR,NewQ,Piece,NewBoard).
 
     
-move(GameState, Player, [], Move, _ , GameState).
+move(GameState, _, [], _, _ , GameState).
 
 move(GameState, Player, [Stone|R], Move, MovedStones,NewGameState):-
     moveStone(GameState,Player,Stone,Move,MovedStones,AuxGameState,NewPosition),
@@ -193,10 +308,29 @@ next_player(black,white).
 
 
 game_over(GameState-black, white):-
-    white_reach_opponent_home(GameState).
+    white_reach_opponent_home(GameState),
+    write('White has reached black\'s Home row'),
+    nl.
+
+game_over(GameState-black, white):-
+    valid_moves(GameState, black, Moves),
+    length(Moves,0),
+    write('Black has no possible moves'),
+    nl.
+
 
 game_over(GameState-white, black):-
-    black_reach_opponent_home(GameState).
+    black_reach_opponent_home(GameState),
+    write('Black has reached black\'s Home row'),
+    nl.
+
+game_over(GameState-white, black):-
+    valid_moves(GameState, white, Moves),
+    write(Moves),
+    length(Moves,0),
+    write('White has no possible moves'),
+    nl.
+
 
 game:-
     initial_state(GameState-Player),
@@ -210,7 +344,7 @@ game_cycle(GameState-Player):-
 
 
 game_cycle(GameState-Player):-
-    choose_move(GameState, Player, Stones, Move),
+    choose_move(GameState, Player,human, Stones-Move),
     move(GameState, Player, Stones, Move, [],NewGameState),
     next_player(Player, NextPlayer),
     display_game(NewGameState), !,
