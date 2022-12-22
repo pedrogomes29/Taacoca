@@ -5,6 +5,23 @@ repeat(C,N):-
     N1 is N-1,
     repeat(C,N1).
 
+display_positions_top :-
+    First is 10,
+    repeat(' ',First),
+    write('  1   2   3   4   5'),
+    nl,
+    repeat(' ',First),
+    write('  |   |   |   |   |'),
+    nl.
+
+display_positions_bottom :-
+    First is 10,
+    repeat(' ',First),
+    write('  |   |   |   |   |'),
+    nl,
+    repeat(' ',First),
+    write('  1   2   3   4   5'),
+    nl.
 
 display_top_line(((R,Q),Type)):-
     write(' / \\').
@@ -19,41 +36,54 @@ display_bottom_line(Line):-
 display_line(Line) :- 
     nth0(0,Line,((R,Q),Type)),
     R < 0, !,
+    Code is 69 - R,
+    char_code(Letter,Code),
     Padding is R * (-2),
-    repeat(' ',Padding),
+    repeat(' ',Padding+2),
     maplist(display_top_line,Line),
-    repeat(' ',Padding),
     nl,
     repeat(' ',Padding),
+    write(Letter),
+    write('-'),
     maplist(display_middle_line,Line),
-    write('|'),
-    repeat(' ',Padding),
+    write('|-'),
+    LineNumber is 9 + R,
+    write(LineNumber),
     nl.
 
 display_line(Line) :- 
     nth0(0,Line,((R,Q),Type)),
     R > 0, !,
+    Code is 69 - R,
+    char_code(Letter,Code),
     Padding is R * 2,    
     repeat(' ',Padding),
+    write(Letter),
+    write('-'),
     maplist(display_middle_line,Line),
-    write('|'),
-    repeat(' ',Padding),
+    write('|-'),
+    LineNumber is 9 - R,
+    write(LineNumber),
     nl,
-    repeat(' ',Padding),
+    repeat(' ',Padding+2),
     maplist(display_bottom_line,Line),
-    repeat(' ',Padding),
     nl.
 
 
 display_line(Line) :-
    R = 0,
+   write('  '),
    maplist(display_top_line,Line),
    nl,
+   write('E-'),
    maplist(display_middle_line,Line),
-   write('|'),
+   write('|-9'),
    nl,
+   write('  '),
    maplist(display_bottom_line,Line),
    nl.
 
-display_game(Board):-
-    maplist(display_line,Board).
+display_game(Board):-   
+    display_positions_top,
+    maplist(display_line,Board),
+    display_positions_bottom.
