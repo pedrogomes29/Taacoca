@@ -1,3 +1,6 @@
+use_module(library(lists)).
+use_module(library(between)).
+
 posToAxial(Pos,PosAxial):-
     (Row,Col)=Pos,
     char_code('E',ECharCode),
