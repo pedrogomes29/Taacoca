@@ -5,22 +5,39 @@ repeat(C,N):-
     N1 is N-1,
     repeat(C,N1).
 
-display_positions_top :-
-    First is 10,
+
+
+display_number(CurrentNumber,NumNumbers):-
+    CurrentNumber is NumNumbers+1,!.
+
+
+log10(X,Y):-
+    Y is log(X)/log(10).
+
+display_number(CurrentNumber,NumNumbers) :-
+    write(CurrentNumber),
+    log10(CurrentNumber,OrderOfMagnitude),
+    NrRepetitions is 3-floor(OrderOfMagnitude),
+    repeat(' ',NrRepetitions),
+    CurrentNumber1 is CurrentNumber + 1,
+    display_number(CurrentNumber1,NumNumbers).
+
+display_positions_top(NumLados) :-
+    First is 2 * NumLados + 2,
     repeat(' ',First),
-    write('  1   2   3   4   5'),
+    display_number(1,NumLados),
     nl,
     repeat(' ',First),
-    write('  |   |   |   |   |'),
+    repeat('|   ', NumLados),
     nl.
 
-display_positions_bottom :-
-    First is 10,
+display_positions_bottom(NumLados) :-
+    First is 2 * NumLados + 2,
     repeat(' ',First),
-    write('  |   |   |   |   |'),
+    repeat('|   ', NumLados),
     nl,
     repeat(' ',First),
-    write('  1   2   3   4   5'),
+    display_number(1,NumLados),
     nl.
 
 display_top_line(((R,Q),Type)):-
@@ -33,10 +50,11 @@ display_middle_line(((R,Q),Type)):- Type = empty, format('| ~a ',[' ']).
 display_bottom_line(Line):-
     write(' \\ /').
 
-display_line(Line) :- 
+display_line(NumLados,Line) :- 
     nth0(0,Line,((R,Q),Type)),
     R < 0, !,
-    Code is 69 - R,
+    MiddleLetter is 65 + NumLados - 1,
+    Code is MiddleLetter - R,
     char_code(Letter,Code),
     Padding is R * (-2),
     repeat(' ',Padding+2),
@@ -47,14 +65,15 @@ display_line(Line) :-
     write('-'),
     maplist(display_middle_line,Line),
     write('|-'),
-    LineNumber is 9 + R,
+    LineNumber is 2*NumLados - 1 + R,
     write(LineNumber),
     nl.
 
-display_line(Line) :- 
+display_line(NumLados,Line) :- 
     nth0(0,Line,((R,Q),Type)),
     R > 0, !,
-    Code is 69 - R,
+    MiddleLetter is 65 + NumLados - 1,
+    Code is MiddleLetter - R,
     char_code(Letter,Code),
     Padding is R * 2,    
     repeat(' ',Padding),
@@ -62,7 +81,7 @@ display_line(Line) :-
     write('-'),
     maplist(display_middle_line,Line),
     write('|-'),
-    LineNumber is 9 - R,
+    LineNumber is 2*NumLados - 1 - R,
     write(LineNumber),
     nl,
     repeat(' ',Padding+2),
@@ -70,29 +89,32 @@ display_line(Line) :-
     nl.
 
 
-display_line(Line) :-
+display_line(NumLados,Line) :-
    R = 0,
    write('  '),
    maplist(display_top_line,Line),
    nl,
-   write('E-'),
+   MiddleLetterCode is 65 + NumLados - 1,
+   char_code(MiddleLetter,MiddleLetterCode),
+   write(MiddleLetter),
+   write('-'),
    maplist(display_middle_line,Line),
-   write('|-9'),
+   LineNumber is 2*NumLados -1 + R,
+   write('|-'),
+   write(LineNumber),
    nl,
    write('  '),
    maplist(display_bottom_line,Line),
    nl.
 
-display_game(Board,TypeOfGame):-  
+display_game(Board,TypeOfGame,NumLados):-  
     TypeOfGame=4,
     !,
-    display_positions_top,
-    maplist(display_line,Board),
-    display_positions_bottom,
-    sleep(2).
+    display_positions_top(NumLados),
+    maplist(display_line(NumLados),Board),
+    display_positions_bottom(NumLados).
 
-
-display_game(Board,TypeOfGame):-   
-    display_positions_top,
-    maplist(display_line,Board),
-    display_positions_bottom.
+display_game(Board,TypeOfGame,NumLados):-   
+    display_positions_top(NumLados),
+    maplist(display_line(NumLados),Board),
+    display_positions_bottom(NumLados).
