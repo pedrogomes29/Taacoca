@@ -10,8 +10,8 @@ posToAxial((Row,Col),Offset,PosAxial):-
     MiddleRow is ACharCode + Offset,
     char_code(Row,RowCharCode),
     R is MiddleRow-RowCharCode,
-    AuxOffset is 4+R+1, %1 because columns start at 1 rather than 0 in Taacoca
-    ColOffset is min(4+1,AuxOffset),
+    AuxOffset is Offset+R+1, %1 because columns start at 1 rather than 0 in Taacoca
+    ColOffset is min(Offset+1,AuxOffset),
     Q is Col-ColOffset,
     PosAxial=(R,Q).
 
@@ -166,6 +166,7 @@ choose_stone(GameState,Player,PieceNr,Offset,StonesChosenSoFar,Stones):-
     write('Col: '),
     read(Col),
     posToAxial((Line,Col),Offset,Stone),
+    nl,
     \+member(Stone,StonesChosenSoFar),
     getPiece(GameState,Stone,Offset,Player),
     NewPieceNr is PieceNr+1,
@@ -524,6 +525,9 @@ get_type_of_player(white,3,computer).
 get_type_of_player(_,4,computer).
 
 
+display_player(Player):-
+    format('~a\'s Turn\n',[Player]).
+
 game:-
     make_choice(TypeOfGame),
     choose_level(TypeOfGame,Level),
@@ -541,6 +545,7 @@ game_cycle(GameState,Player,_,_,NumLados):-
 game_cycle(GameState,Player,TypeOfGame,Level, NumLados):-
     Offset is NumLados-1,
     get_type_of_player(Player,TypeOfGame,TypeOfPlayer),
+    display_player(Player),
     choose_move(GameState, Player,TypeOfPlayer-Level,Offset, Stones-Move),
     move(GameState, Player, Stones, Move, [],NewGameState),
     next_player(Player, NextPlayer),

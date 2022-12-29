@@ -112,7 +112,8 @@ display_game(Board,TypeOfGame,NumLados):-
     !,
     display_positions_top(NumLados),
     maplist(display_line(NumLados),Board),
-    display_positions_bottom(NumLados).
+    display_positions_bottom(NumLados),
+    sleep(2).
 
 display_game(Board,TypeOfGame,NumLados):-   
     display_positions_top(NumLados),
