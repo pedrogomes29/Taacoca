@@ -83,7 +83,16 @@ display_line(Line) :-
    maplist(display_bottom_line,Line),
    nl.
 
-display_game(Board):-   
+display_game(Board,TypeOfGame):-  
+    TypeOfGame=4,
+    !,
+    display_positions_top,
+    maplist(display_line,Board),
+    display_positions_bottom,
+    sleep(2).
+
+
+display_game(Board,TypeOfGame):-   
     display_positions_top,
     maplist(display_line,Board),
     display_positions_bottom.

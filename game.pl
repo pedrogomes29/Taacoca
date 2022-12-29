@@ -2,6 +2,8 @@
 :- consult(print_board).
 :- use_module(library(lists)).
 :- use_module(library(between)).
+:- use_module(library(random)).
+:- use_module(library(system)).
 
 posToAxial(Pos,PosAxial):-
     (Row,Col)=Pos,
@@ -28,7 +30,7 @@ getPiece(Board,(R,Q),Piece):-
     getElementOfMatrix(Board,Line,Col,(_,Piece)). 
 
 initial_state(GameState-white):-
-    board(3,GameState).
+    board(1,GameState).
 
 
 pos_in_board((R,Q)):-
@@ -92,22 +94,24 @@ getPlayerStonesLine([],_,CurrentStones,CurrentStones).
 
 getPlayerStonesLine([(Pos,Player)|RestLine],Player,CurrentStones,PlayerStones):-
     !,
+
     getPlayerStonesLine(RestLine,Player,[Pos|CurrentStones],PlayerStones).
 
 getPlayerStonesLine([_|RestLine],Player,CurrentStones,PlayerStones):-
     getPlayerStonesLine(RestLine,Player,CurrentStones,PlayerStones).
 
 
-getPlayerStonesAux([],_,CurrentStones,CurrentStones).
+getPlayerStonesAux([],_,CurrentStones,StonesInDanger,CurrentStones,StonesInDanger).
 
-getPlayerStonesAux([Line|OtherLines],Player,CurrentStones,PlayerStones):-
-    getPlayerStonesLine(Line,Player,[],LineStones),
+getPlayerStonesAux([Line|OtherLines],Player,CurrentStones,CurrentStonesInDanger,PlayerStones,StonesInDanger):-
+    getPlayerStonesLine(Line,Player,[],0,LineStones,LineStonesInDanger),
     append(CurrentStones,LineStones,NewCurrentStones),
-    getPlayerStonesAux(OtherLines,Player,NewCurrentStones,PlayerStones).
+    NewStonesInDanger is CurrentStonesInDanger+LineStonesInDanger,
+    getPlayerStonesAux(OtherLines,Player,NewCurrentStones,NewStonesInDanger,PlayerStones,StonesInDanger).
 
 
-getPlayerStones(GameState,Player,PlayerStones):-
-    getPlayerStonesAux(GameState,Player,[],PlayerStones).
+getPlayerStones(GameState,Player,PlayerStones,StonesInDanger):-
+    getPlayerStonesAux(GameState,Player,[],0,PlayerStones,StonesInDanger).
 
 choose_stones(GameState,Player,human,PossibleMoves,Stones):-
     choose_stone(GameState,Player,1,[],Stones),
@@ -122,7 +126,7 @@ choose_stones(GameState,Player,human,PossibleMoves,Stones):-
     !.
 
 
-choose_stones(GameState,Player,computer,PossibleMoves,Stones):-
+choose_stones(GameState,Player,computer,PossibleMove,Stones):-
 
     getPlayerStones(GameState,Player,PlayerStones),
     length(PlayerStones,NrStones),
@@ -152,10 +156,10 @@ choose_stones(GameState,Player,computer,PossibleMoves,Stones):-
     InitialMoves=[E,SE,SW,W,NW,NE],
 
     get_moves(GameState,Player,Stones,InitialMoves,PossibleMoves),
-    \+length(PossibleMoves,0).
+    member(PossibleMove,PossibleMoves).
 
 
-choose_stones(GameState,Player,computer,PossibleMoves,Stones):-
+choose_stones(GameState,Player,computer,PossibleMove,Stones):-
 
     getPlayerStones(GameState,Player,PlayerStones),
     length(PlayerStones,NrStones),
@@ -174,10 +178,11 @@ choose_stones(GameState,Player,computer,PossibleMoves,Stones):-
     NE = (-1,1),
     InitialMoves=[E,SE,SW,W,NW,NE],
 
-    get_moves(GameState,Player,Stones,InitialMoves,PossibleMoves).
+    get_moves(GameState,Player,Stones,InitialMoves,PossibleMoves),
+    member(PossibleMove,PossibleMoves).
 
 
-choose_stones(GameState,Player,computer,PossibleMoves,Stones):-
+choose_stones(GameState,Player,computer,PossibleMove,Stones):-
 
     getPlayerStones(GameState,Player,PlayerStones),
     length(PlayerStones,NrStones),
@@ -195,7 +200,8 @@ choose_stones(GameState,Player,computer,PossibleMoves,Stones):-
     NE = (-1,1),
     InitialMoves=[E,SE,SW,W,NW,NE],
 
-    get_moves(GameState,Player,Stones,InitialMoves,PossibleMoves).
+    get_moves(GameState,Player,Stones,InitialMoves,PossibleMoves),
+    member(PossibleMove,PossibleMoves).
 
 
 
@@ -228,7 +234,65 @@ parseMove('NE',(-1,1)).
 display_possible_moves(PossibleMoves):-
     maplist(display_move,PossibleMoves).
 
-choose_move(GameState, Player,human, Stones-Move):-
+
+valid_moves(GameState,Player,Moves):-
+    findall(Stones-PossibleMove,choose_stones(GameState,Player,computer,PossibleMove,Stones), Moves).
+
+
+
+enemy(white,black).
+
+enemy(black,white).
+
+
+min_moves_to_win(white,(-4,_),-1):-!.
+
+min_moves_to_win(white,(R,_),Distance):-
+    BlackRow = -4,
+    Distance is sqrt(R-BlackRow).
+
+min_moves_to_win(black,(4,_),-1):-!.
+
+min_moves_to_win(black,(R,_),Distance):-
+    WhiteRow = 4,
+    Distance is sqrt(WhiteRow-R).
+
+average( List, Average ):- 
+    sumlist( List, Sum ),
+    length( List, Length ),
+    Length > 0, 
+    Average is Sum / Length.
+
+evaluate_move(GameState, Player, Value) :-
+    getPlayerStones(GameState,Player,AllyStones),
+    maplist(min_moves_to_win(Player),AllyStones,DistanceListAlly),
+    average(DistanceListAlly,DistanceToWin),
+
+    enemy(Player,Enemy),
+    getPlayerStones(GameState,Enemy,EnemyStones),
+    maplist(min_moves_to_win(Enemy),EnemyStones,DistanceListEnemy),
+    average(DistanceListEnemy,DistanceToLose),
+
+    length(EnemyStones,NrEnemyStones),
+
+    Distance is DistanceToWin-DistanceToLose,
+    
+    Value is Distance + NrEnemyStones.
+
+
+
+best_move(1, _, _, Moves, Stones-Move):-
+    random_member(Stones-Move,Moves).
+
+
+best_move(2, GameState, Player, Moves, Stones-Move):-
+    setof(Value-(SomeStones,SomeMove), NewGameState^( member(SomeStones-SomeMove, Moves),
+            move(GameState, Player, SomeStones, SomeMove, [],NewGameState),
+            evaluate_move(NewGameState, Player, Value) ), [_V-(Stones,Move)|_]).
+
+
+
+choose_move(GameState, Player,human-_, Stones-Move):-
     repeat,
     choose_stones(GameState,Player,human,PossibleMoves,Stones),
     length(PossibleMoves,NrPosMoves),
@@ -241,13 +305,9 @@ choose_move(GameState, Player,human, Stones-Move):-
     parseMove(MoveText,Move).
 
 
-valid_moves(GameState,Player,Moves):-
-    findall(Stones-PossibleMoves,choose_stones(GameState,Player,computer,PossibleMoves,Stones), Moves).
-
-
-choose_move(GameState, Player, computer-Level, Stones, Move):-
+choose_move(GameState, Player, computer-Level, Stones-Move):-
     valid_moves(GameState, Player, Moves),
-    choose_move(Level, GameState, Player, Moves, Stones-Move).
+    best_move(Level, GameState, Player, Moves, Stones-Move).
 
 
 congratulate(Winner):-
@@ -321,33 +381,79 @@ game_over(GameState-black, white):-
 
 game_over(GameState-white, black):-
     black_reach_opponent_home(GameState),
-    write('Black has reached black\'s Home row'),
+    write('Black has reached white\'s Home row'),
     nl.
 
 game_over(GameState-white, black):-
     valid_moves(GameState, white, Moves),
-    write(Moves),
     length(Moves,0),
     write('White has no possible moves'),
     nl.
 
 
+
+make_choice(TypeOfGame):-
+    write('What mode do you want to play?'),
+    nl,
+    write('The game is white stones vs black stones'),
+    nl,
+    write('1. Player (white) vs Player (black)'),
+    nl,
+    write('2. Player (white) vs AI (black)'),
+    nl,
+    write('3. AI (white) vs Player (black)'),
+    nl,
+    write('4. AI vs AI'),
+    nl,
+    write('Your choice: '),
+    read(TypeOfGame). 
+
+
+choose_level(1,_).
+
+choose_level(TypeOfGame,Level):-
+    TypeOfGame<5,
+    TypeOfGame>0,
+    write('Choose the game dificulty:'),
+    nl,
+    write('1. Easy mode'),
+    nl, 
+    write('2, Hard mode'),
+    nl,
+    write('Your choice: '),
+    read(Level).
+
+get_type_of_player(_,1,human).
+
+get_type_of_player(white,2,human).
+get_type_of_player(black,2,computer).
+
+get_type_of_player(black,3,human).
+get_type_of_player(white,3,computer).
+
+get_type_of_player(_,4,computer).
+
+
 game:-
+    make_choice(TypeOfGame),
+    choose_level(TypeOfGame,Level),
     initial_state(GameState-Player),
-    display_game(GameState),
-    game_cycle(GameState-Player).
+    display_game(GameState,TypeOfGame),
+    game_cycle(GameState,Player,TypeOfGame,Level).
 
 
-game_cycle(GameState-Player):-
+game_cycle(GameState,Player,_,_):-
     game_over(GameState-Player, Winner), !,
     congratulate(Winner).
 
-
-game_cycle(GameState-Player):-
-    choose_move(GameState, Player,human, Stones-Move),
+game_cycle(GameState,Player,TypeOfGame,Level):-
+    get_type_of_player(Player,TypeOfGame,TypeOfPlayer),
+    choose_move(GameState, Player,TypeOfPlayer-Level, Stones-Move),
     move(GameState, Player, Stones, Move, [],NewGameState),
     next_player(Player, NextPlayer),
-    display_game(NewGameState), !,
-    game_cycle(NewGameState-NextPlayer).
+    display_game(NewGameState,TypeOfGame), !,
+    game_cycle(NewGameState,NextPlayer,TypeOfGame,Level).
+
+    
 
 
