@@ -94,24 +94,23 @@ getPlayerStonesLine([],_,CurrentStones,CurrentStones).
 
 getPlayerStonesLine([(Pos,Player)|RestLine],Player,CurrentStones,PlayerStones):-
     !,
-
+    
     getPlayerStonesLine(RestLine,Player,[Pos|CurrentStones],PlayerStones).
 
 getPlayerStonesLine([_|RestLine],Player,CurrentStones,PlayerStones):-
     getPlayerStonesLine(RestLine,Player,CurrentStones,PlayerStones).
 
 
-getPlayerStonesAux([],_,CurrentStones,StonesInDanger,CurrentStones,StonesInDanger).
+getPlayerStonesAux([],_,CurrentStones,CurrentStones).
 
-getPlayerStonesAux([Line|OtherLines],Player,CurrentStones,CurrentStonesInDanger,PlayerStones,StonesInDanger):-
-    getPlayerStonesLine(Line,Player,[],0,LineStones,LineStonesInDanger),
+getPlayerStonesAux([Line|OtherLines],Player,CurrentStones,PlayerStones):-
+    getPlayerStonesLine(Line,Player,[],LineStones),
     append(CurrentStones,LineStones,NewCurrentStones),
-    NewStonesInDanger is CurrentStonesInDanger+LineStonesInDanger,
-    getPlayerStonesAux(OtherLines,Player,NewCurrentStones,NewStonesInDanger,PlayerStones,StonesInDanger).
+    getPlayerStonesAux(OtherLines,Player,NewCurrentStones,PlayerStones).
 
 
-getPlayerStones(GameState,Player,PlayerStones,StonesInDanger):-
-    getPlayerStonesAux(GameState,Player,[],0,PlayerStones,StonesInDanger).
+getPlayerStones(GameState,Player,PlayerStones):-
+    getPlayerStonesAux(GameState,Player,[],PlayerStones).
 
 choose_stones(GameState,Player,human,PossibleMoves,Stones):-
     choose_stone(GameState,Player,1,[],Stones),
