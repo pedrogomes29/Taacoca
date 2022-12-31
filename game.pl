@@ -667,6 +667,7 @@ choose_move(GameState, Player,human-_, MiddleRow,Stones-Move):-
     choose_stones(GameState,Player,human,MiddleRow,PossibleMoves,Stones),
     length(PossibleMoves,NrPosMoves),
     NrPosMoves>0,
+    repeat,
     write('Possible Moves'),
     nl,
     display_possible_moves(PossibleMoves),
