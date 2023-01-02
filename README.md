@@ -97,7 +97,7 @@ We also calculate the number of opponent stones in the board (NrEnemyStones). We
 
 Using these 3 variables, we use the following formula: 
 
-$(DistanceToWin-DistanceToLose+NrEnemyStones)$
+> DistanceToWin-DistanceToLose+NrEnemyStones
 
 Since we are ordering all possible moves by value and selecting the one with the smallest value, the smaller the result of the formula, the better that move is.
 
