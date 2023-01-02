@@ -576,12 +576,13 @@ enemy(black,white).
 
 /**
 * min_moves_to_win(+Player,+MiddleRow,(+R,+Q),-Distance)
-* Finds the square root of the minimum number of moves needed to win for the nearest stone of the player to win 
+* Finds the square root of the minimum number of moves needed for a stone to win
 *
 * @param Player - The player to find the minimum moves for (white or black)
 * @param MiddleRow - The middle row of the board
 * @param (R,Q) - The coordinates of the stone
-* @param Distance - The square root of the minimum number of moves needed to win
+* @param Distance - The square root of the minimum number of moves the stone needs
+* to make to win
 */
 min_moves_to_win(white,MiddleRow,(R,_),Distance):-
     BlackRow = -MiddleRow,
@@ -652,7 +653,7 @@ best_move(2, GameState, Player, Moves,MiddleRow, Stones-Move):-
 
 
 /**
-* choose_move(+GameState, +Player, +computer-Level,+MiddleRow, -Stones-Move)
+* choose_move(+GameState, +Player, +TypeOfPlayer-Level,+MiddleRow, -Stones-Move)
 * Given a player (black or white), the type of player (human or computer) and 
 * the difficulty (easy or hard), A move is chosen for a given gamestate and board size
 *
@@ -690,7 +691,7 @@ congratulate(Winner):-
 
 /**
 * white_reach_opponent_home(+GameState,+MiddleRow)
-* Checks if the white player has reached the opponent home
+* Checks if the white player has reached the opponent's home
 * @param GameState - The current game state
 * @param MiddleRow - The middle row of the board
 */
@@ -702,7 +703,7 @@ white_reach_opponent_home(GameState,MiddleRow):-
 
 /**
 * black_reach_opponent_home(+GameState,+MiddleRow)
-* Checks if the black player has reached the opponent home
+* Checks if the black player has reached the opponent's home
 * @param GameState - The current game state
 * @param MiddleRow - The middle row of the board
 */
@@ -777,12 +778,12 @@ moveStone(Board,Piece,(OldR,OldQ),(R,Q),_,NewBoard,(NewR,NewQ)):-
 
     
 /**
-* move(+GameState,+Piece,+OldPos,+Move,+MovedStones,-NewGameState)
-* Moves a stone from a given position to a new position
+* move(+GameState,+Piece,+Stones,+Move,+MovedStones,-NewGameState)
+* Moves stones from their current position to their position after moving in the Move directions
 *
 * @param GameState - The board to move the stones on
 * @param Piece - The piece to move
-* @param OldPos - A list with the current positions of the pieces
+* @param Stones - A list with the current positions of the pieces
 * @param Move - The direction to move the pieces
 * @param MovedStones - The stones that have already been moved
 * @param NewGameState - The new board with the pieces moved
@@ -842,6 +843,7 @@ game_over(GameState-white, black, MiddleRow):-
 * @param TypeOfGame - the type of game the user wants to play
 */
 make_choice(TypeOfGame):-
+    repeat,
     write('What mode do you want to play+'),
     nl,
     write('The game is white stones vs black stones'),
@@ -855,7 +857,9 @@ make_choice(TypeOfGame):-
     write('4. AI vs AI'),
     nl,
     write('Your choice: '),
-    read(TypeOfGame). 
+    read(TypeOfGame),
+    TypeOfGame>0,
+    TypeOfGame<5. 
 
 
 /**
@@ -885,6 +889,7 @@ choose_board_size(NumLados):-
 choose_level(1,_).
 
 choose_level(TypeOfGame,Level):-
+    repeat,
     TypeOfGame<5,
     TypeOfGame>0,
     write('Choose the game dificulty:'),
@@ -929,7 +934,7 @@ display_player(Player):-
 /**
 * play
 * This predicate is the main predicate of the game. It is responsible for the game cycle.
-* It calls the predicates that ask the user to choose the type of game, the difficulty of the game
+* It calls the predicates that asks the user to choose the type of game, the difficulty of the game
 * and the size of the board. It then calls the predicate initial_state to get the initial state of the game
 * and then calls the predicate display_game to display the initial state of the game.
 * It then calls the predicate game_cycle to start the game cycle.

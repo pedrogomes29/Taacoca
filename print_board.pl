@@ -2,7 +2,7 @@
 * repeat(+C,+N).
 * 
 *
-* Repeats the argument (C) N times
+* Writes the argument (C) N times
 *
 * @param C The argument that we want to repeat
 * @param N The number of times we want to repeat
@@ -48,7 +48,7 @@ display_number(CurrentNumber,NumNumbers) :-
 /**
 * display_positions_top(+NumLados).
 *
-* Displays the numbers that represent the positions in the top of the board
+* Displays the numbers that represent the positions at the top of the board
 *
 * @param NumLados The number of hexagons in one side of the board
 */
